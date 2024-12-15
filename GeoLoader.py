@@ -2,25 +2,26 @@ import json
 import os
 import subprocess
 import platform
-import shutil
 import requests
-import zipfile
 
 def load_config(profile="default"):
-    try:
-        with open(f'config_{profile}.json') as f:
-            return json.load(f)
-    except FileNotFoundError:
+    """Load configuration for the given profile or default."""
+    config_file = f'config_{profile}.json'
+    if not os.path.exists(config_file):
         print(f"Profile '{profile}' not found, loading default configuration.")
-        return json.load(open('config.json'))
+        config_file = 'config.json'
+    with open(config_file) as f:
+        return json.load(f)
 
 def save_config(profile="default", config_data=None):
+    """Save the current configuration to a profile."""
     if config_data is None:
         config_data = load_config(profile)
     with open(f'config_{profile}.json', 'w') as f:
         json.dump(config_data, f, indent=4)
 
-def create_mod_template(mod_name, profile="default"):
+def create_mod_template(mod_name):
+    """Create a template for a new mod."""
     base_path = f"mods/{mod_name}"
     os.makedirs(base_path, exist_ok=True)
     os.makedirs(f"{base_path}/src", exist_ok=True)
@@ -51,8 +52,9 @@ def create_mod_template(mod_name, profile="default"):
 
     print(f"Mod template for {mod_name} created successfully.")
 
-def build_mod(mod_name, profile="default"):
-    config = load_config(profile)
+def build_mod(mod_name):
+    """Compile and build the mod from source."""
+    config = load_config()
     mod_path = f"mods/{mod_name}"
     gloader_file = f"{mod_path}/{mod_name}.gloader"
 
@@ -79,100 +81,95 @@ def build_mod(mod_name, profile="default"):
     except subprocess.CalledProcessError as e:
         print(f"Build failed: {e}")
 
-def update(profile="default"):
-    print("Checking for updates...")
-    repo_url = "https://api.github.com/repos/entity12208/GeoLoader/releases/latest"
-    response = requests.get(repo_url)
-    latest_release = response.json()
+def update_from_release():
+    """Update GeoLoader from the latest release."""
+    release_info = load_config().get("releaseInfo", {})
+    if not release_info:
+        print("No release information found.")
+        return
 
-    version = latest_release['tag_name']
-    download_url = latest_release['assets'][0]['browser_download_url']
+    version = release_info.get("version", "unknown")
+    release_notes = release_info.get("releaseNotes", "No release notes available.")
+    print(f"Updating GeoLoader to version {version}...\nRelease Notes: {release_notes}")
 
-    print(f"Updating GeoLoader to version {version}...")
+    # Pull from the release's assets (e.g., zip, tar)
+    download_url = release_info.get("downloadUrl")
+    if download_url:
+        try:
+            response = requests.get(download_url)
+            with open(f"GeoLoader-{version}.zip", 'wb') as f:
+                f.write(response.content)
+            print(f"Downloaded release to GeoLoader-{version}.zip")
+            # You can also add logic here to extract and replace files.
+        except requests.RequestException as e:
+            print(f"Error downloading release: {e}")
+    else:
+        print("No download URL found in release info.")
 
-    # Download the new version
-    r = requests.get(download_url, stream=True)
-    with open("geoloader_update.zip", "wb") as f:
-        shutil.copyfileobj(r.raw, f)
-
-    # Extract the files
-    with zipfile.ZipFile("geoloader_update.zip", "r") as zip_ref:
-        zip_ref.extractall("geoloader_update")
-
-    # Replace old files
-    for root, dirs, files in os.walk("geoloader_update"):
-        for file in files:
-            shutil.move(os.path.join(root, file), os.path.join(".", file))
-
-    # Clean up
-    shutil.rmtree("geoloader_update")
-    os.remove("geoloader_update.zip")
-    print("Update completed successfully!")
-
-def uninstall(profile="default"):
-    print("Uninstalling GeoLoader...")
-
-    # Remove GeoLoader files
-    files_to_remove = ['geoloader.py', 'geoloader_update.zip', 'geoloader']
-    for file in files_to_remove:
-        if os.path.exists(file):
-            if os.path.isdir(file):
-                shutil.rmtree(file)
-            else:
-                os.remove(file)
-
-    # Remove the profile config
-    if os.path.exists(f'config_{profile}.json'):
-        os.remove(f'config_{profile}.json')
-
-    print("GeoLoader has been uninstalled.")
-
-def list_profiles():
-    print("Available profiles:")
-    for filename in os.listdir("."):
-        if filename.startswith("config_") and filename.endswith(".json"):
-            profile_name = filename[7:-5]
-            print(f"- {profile_name}")
-
-def switch_profile():
-    profiles = [filename[7:-5] for filename in os.listdir(".") if filename.startswith("config_") and filename.endswith(".json")]
-    if not profiles:
-        print("No profiles available.")
-        return None
-    print("Available profiles:")
-    for i, profile in enumerate(profiles, start=1):
-        print(f"{i}. {profile}")
-    
+def update_to_latest_commit():
+    """Update GeoLoader to the latest commit."""
+    print("Updating to the latest commit...")
     try:
-        choice = int(input("Select a profile by number: "))
-        return profiles[choice - 1]
-    except (ValueError, IndexError):
-        print("Invalid selection.")
-        return None
+        subprocess.check_call("git pull", shell=True)
+        print("Successfully updated to the latest commit.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to update: {e}")
+
+def check_for_updates():
+    """Check for updates from the repository's latest release."""
+    repo_url = "https://api.github.com/repos/entity12208/GeoLoader/releases/latest"
+    try:
+        response = requests.get(repo_url)
+        response.raise_for_status()
+        release = response.json()
+
+        version = release["tag_name"]
+        pre_release = release.get("prerelease", False)
+        release_notes = release.get("body", "No release notes.")
+        download_url = release["assets"][0]["browser_download_url"]  # Assuming the first asset is the release file.
+
+        print(f"Latest version: {version} - {'Pre-release' if pre_release else 'Stable'}")
+        print(f"Release Notes: {release_notes}")
+        return {
+            "version": version,
+            "releaseNotes": release_notes,
+            "downloadUrl": download_url
+        }
+
+    except requests.RequestException as e:
+        print(f"Error checking for updates: {e}")
+        return {}
 
 def main():
-    action = input("Enter 'create' to create a new mod template, 'build' to build an existing mod, 'update' to update, 'uninstall' to uninstall, 'list' to list profiles or 'switch' to switch profiles: ").strip().lower()
+    """Main program entry point."""
+    print("GeoLoader CLI")
+
+    profile = input("Enter profile name (default if none): ").strip()
+    if not profile:
+        profile = "default"
+
+    config = load_config(profile)
+    print(f"GeoLoader version: {config['version']}")
+
+    action = input("Enter 'create' to create a new mod template, 'build' to build an existing mod, 'update' to update GeoLoader: ").strip().lower()
 
     if action == 'create':
         mod_name = input("Enter the name of the new mod: ")
-        profile = input("Enter profile (default or switch profile): ")
-        create_mod_template(mod_name, profile)
+        create_mod_template(mod_name)
     elif action == 'build':
         mod_name = input("Enter the name of the mod to build: ")
-        profile = input("Enter profile (default or switch profile): ")
-        build_mod(mod_name, profile)
+        build_mod(mod_name)
     elif action == 'update':
-        profile = input("Enter profile (default or switch profile): ")
-        update(profile)
-    elif action == 'uninstall':
-        profile = input("Enter profile (default or switch profile): ")
-        uninstall(profile)
-    elif action == 'list':
-        list_profiles()
-    elif action == 'switch':
-        profile = switch_profile()
-        if profile:
-            print(f"Switched to profile: {profile}")
+        update_choice = input("Do you want to update to the latest release or the latest commit? (release/commit): ").strip().lower()
+        if update_choice == "release":
+            update_info = check_for_updates()
+            if update_info:
+                save_config(profile, {"releaseInfo": update_info})
+                update_from_release()
+        elif update_choice == "commit":
+            update_to_latest_commit()
+        else:
+            print("Invalid option.")
     else:
         print("Invalid action.")
 
