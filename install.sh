@@ -17,6 +17,7 @@ sudo apt update
 sudo apt upgrade
 sudo apt install -y build-essential git python3 python3-pip cmake
 pip install --upgrade-pip
+
 # Clone the GeoLoader repository
 echo "Cloning GeoLoader repository..."
 git clone https://github.com/entity12208/GeoLoader.git $INSTALL_DIR
