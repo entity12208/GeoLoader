@@ -9,5 +9,10 @@
     "network": {
         "proxy": "",
         "timeout": 30
+    },
+    "binaries": {
+        "windows": "binaries/geometry_dash.exe",
+        "mac": "binaries/geometry_dash_mac",
+        "linux": "binaries/geometry_dash_linux"
     }
 }
