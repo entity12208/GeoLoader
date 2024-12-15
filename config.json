@@ -1,0 +1,13 @@
+{
+    "installPath": "GeoLoader",
+    "version": "1.0.0",
+    "autoUpdate": true,
+    "logging": {
+        "level": "info",
+        "file": "GeoLoader/logs/geoloader.log"
+    },
+    "network": {
+        "proxy": "",
+        "timeout": 30
+    }
+}
