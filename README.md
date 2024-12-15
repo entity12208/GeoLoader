@@ -18,4 +18,3 @@ GeoLoader is a CLI tool to help manage and generate mod templates for Geometry D
 
 - **Create Mod Template**: Generates a new mod template.
 - **Build Mod**: Compiles the source files for the specified mod and generates a binary.
-
