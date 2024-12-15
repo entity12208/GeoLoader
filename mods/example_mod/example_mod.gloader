@@ -1,0 +1,5 @@
+{
+    "modName": "example_mod",
+    "sourceFiles": ["src/main.cpp"],
+    "outputFile": "build/example_mod.dll"
+}
