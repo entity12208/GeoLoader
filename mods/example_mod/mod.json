@@ -1,0 +1,8 @@
+{
+    "name": "example_mod",
+    "version": "1.0.0",
+    "description": "A new mod for GeoLoader",
+    "author": "Your Name",
+    "geoLoaderVersion": "1.0.0",
+    "gdVersion": "2.11"
+}
