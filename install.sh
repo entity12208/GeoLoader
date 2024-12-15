@@ -14,8 +14,9 @@ fi
 # Install required dependencies
 echo "Installing dependencies..."
 sudo apt update
+sudo apt upgrade
 sudo apt install -y build-essential git python3 python3-pip cmake
-
+pip install --upgrade-pip
 # Clone the GeoLoader repository
 echo "Cloning GeoLoader repository..."
 git clone https://github.com/entity12208/GeoLoader.git $INSTALL_DIR
@@ -33,6 +34,8 @@ pip install -r requirements.txt
 
 # Build GeoLoader
 echo "Building GeoLoader..."
+cd scripts
+sudo chmod +x build.sh
 ./build.sh
 
 echo "GeoLoader installed successfully at $INSTALL_DIR"
