@@ -1,66 +1,52 @@
-name: Update GeoLoader CLI
+name: Update CLI and Create Release
 
 on:
   push:
-    tags:
-      - 'v*'  # Trigger for any tag push (versions like v1.0.0, v1.1.0, etc.)
+    branches:
+      - main
 
 jobs:
-  release:
+  update-cli:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Upgrade pip, setuptools, and wheel
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
 
-      - name: Get latest release from GitHub API
-        id: latest_release
-        run: |
-          release_info=$(curl -s "https://api.github.com/repos/entity12208/GeoLoader/releases/latest")
-          echo "::set-output name=tag::$(echo $release_info | jq -r .tag_name)"
-          echo "::set-output name=release_notes::$(echo $release_info | jq -r .body)"
-          echo "::set-output name=is_prerelease::$(echo $release_info | jq -r .prerelease)"
+    - name: Install Cython
+      run: |
+        python -m pip install cython
 
-      - name: Generate release version and changelog
-        id: release_version
-        run: |
-          VERSION_TAG="${{ steps.latest_release.outputs.tag }}"
-          NOTES="${{ steps.latest_release.outputs.release_notes }}"
-          IS_PRERELEASE="${{ steps.latest_release.outputs.is_prerelease }}"
+    - name: Install dependencies
+      run: |
+        python -m pip install -r requirements.txt
 
-          # Generate release name
-          if [[ "$IS_PRERELEASE" == "true" ]]; then
-            VERSION_NAME="${VERSION_TAG}-BETA"
-          else
-            VERSION_NAME="${VERSION_TAG}-STABLE"
-          fi
+    - name: Run tests
+      run: |
+        python -m unittest discover tests
 
-          # Update GeoLoader.py with release version and changelog
-          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION_TAG\"/" GeoLoader.py
-          sed -i "s/\"releaseNotes\": \".*\"/\"releaseNotes\": \"$NOTES\"/" GeoLoader.py
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*
+        draft: false
+        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
 
-          echo "::set-output name=version_name::$VERSION_NAME"
-          echo "::set-output name=version_tag::$VERSION_TAG"
-
-      - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
-        run: |
-          VERSION_NAME="${{ steps.release_version.outputs.version_name }}"
-          VERSION_TAG="${{ steps.release_version.outputs.version_tag }}"
-          NOTES="${{ steps.release_version.outputs.release_notes }}"
-
-          gh release create $VERSION_TAG --title "$VERSION_NAME" --notes "$NOTES" --prerelease $IS_PRERELEASE
-          
-      - name: Clean up
-        run: |
-          # Any additional clean-up steps you need to perform
-          echo "Release process complete!"
+    - name: Upload Release Notes
+      run: |
+        tag=$(git describe --tags)
+        echo "Generating release notes for tag: $tag"
+        notes=$(python generate_release_notes.py $tag)
+        gh release edit $tag --notes "$notes"
