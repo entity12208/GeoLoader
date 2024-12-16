@@ -37,7 +37,15 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m unittest discover tests
+        # Ensure we're in the right directory
+        pwd
+        # List contents to verify structure
+        ls -la
+        # Create tests directory and __init__.py if they don't exist
+        mkdir -p tests
+        touch tests/__init__.py
+        # Run tests with more verbose output
+        python -m unittest discover -v -s tests -p "*_test.py"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
