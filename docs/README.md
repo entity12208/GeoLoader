@@ -22,11 +22,10 @@ GeoLoader is a Command Line Interface (CLI) tool designed to help create and man
 **geoloader new**
 Creates a new mod template.
 This will prompt you for information such as the mod name, developer name, and description. It will generate the following files:
-/src/
-  main.cpp
-mod.json
-about.md
-/build/
+`src/main.cpp`
+`mod.json`
+`about.md`
+`build/`
 
 **geoloader build**
 Builds the mod into a .gloader file that can be loaded into Geometry Dash.
