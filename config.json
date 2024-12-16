@@ -1,6 +1,6 @@
 {
     "installPath": "GeoLoader",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "autoUpdate": true,
     "logging": {
         "level": "info",
