@@ -41,7 +41,7 @@ jobs:
         draft: false
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
         tag_name: Auto
-        name: ${{ github.ref }}
+        name: Auto Updated Content For CLI
 
     - name: Upload Release Notes
       run: |
