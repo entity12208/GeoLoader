@@ -42,10 +42,3 @@ jobs:
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
         tag_name: Auto
         name: Auto Updated Content For CLI
-
-    - name: Upload Release Notes
-      run: |
-        tag=$(git describe --tags)
-        echo "Generating release notes for tag: $tag"
-        notes=$(python generate_release_notes.py $tag)
-        gh release edit $tag --notes "$notes"
